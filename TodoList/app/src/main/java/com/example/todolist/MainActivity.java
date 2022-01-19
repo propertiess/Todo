@@ -1,7 +1,6 @@
 package com.example.todolist;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -9,9 +8,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
-import android.text.InputFilter;
-import android.text.Spanned;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -24,7 +20,6 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.todolist.adapter.CategoryAdapter;
 import com.example.todolist.model.Category;
@@ -32,8 +27,6 @@ import com.example.todolist.model.Category;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity  {
     RecyclerView categoryRecycler;
@@ -43,7 +36,10 @@ public class MainActivity extends AppCompatActivity  {
     EditText text_input;
     Button button;
     RelativeLayout contentView;
+    List<Category> categoryList;
     boolean isKeyboardShowing = false;
+
+
 
 
     @Override
@@ -56,16 +52,15 @@ public class MainActivity extends AppCompatActivity  {
         contentView = findViewById(R.id.contentView);
         categoryTitle = (CheckBox) findViewById(R.id.categoryTitle);
         categoryRecycler = findViewById(R.id.list);
+//        loadArray(this);
+        categoryList = PreConfig.readListFromPref(this);
+        if(categoryList == null) {
+            categoryList = new ArrayList<>();
+        }
+        for(int i = 0; i < categoryList.size(); i++){
+            setCategoryRecycler(categoryList);
 
-        List<Category> categoryList = new ArrayList<>();
-
-
-
-
-
-
-
-
+        }
         button.setOnClickListener(v -> {
             if(text_input.getVisibility() == View.INVISIBLE) {
                 text_input.setVisibility(View.VISIBLE);
@@ -81,11 +76,19 @@ public class MainActivity extends AppCompatActivity  {
                 System.out.println("Click");
 
             }
-            else if(text_input.getVisibility() == View.VISIBLE) {
+            else if(text_input.getVisibility() == View.VISIBLE && !checkLabelOnNothing(text_input.getText().toString())){
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.showSoftInput(text_input, InputMethodManager.SHOW_FORCED);
+            }
+            else if(text_input.getVisibility() == View.VISIBLE && checkLabelOnNothing(text_input.getText().toString())) {
                 categoryList.add(new Category(count_task, text_input.getText().toString(), false));
+                PreConfig.writeListInPref(getApplicationContext(),categoryList);
                 text_input.setText("");
+                text_input.setVisibility(View.INVISIBLE);
                 setCategoryRecycler(categoryList);
                 count_task++;
+                System.out.println("GG");
+
             }
 
         });
@@ -96,18 +99,17 @@ public class MainActivity extends AppCompatActivity  {
                 if (actionId == EditorInfo.IME_ACTION_DONE && text_input.getText().length() == 0) {
 
                     System.out.println("Ok");
-                    Toast.makeText(getApplicationContext(), "Некорректные данные", Toast.LENGTH_SHORT).show();
 
-                    return true; // Focus will do whatever you put in the logic.
+                    return false; // Focus will do whatever you put in the logic.
                 }
                 else if(actionId == EditorInfo.IME_ACTION_DONE && text_input.getText().length() != 0){
                     if(!checkLabelOnNothing(text_input.getText().toString())){
-                        Toast.makeText(getApplicationContext(), "Некорректные данные", Toast.LENGTH_SHORT).show();
-                        return true;
+                        return false;
                     }
 
                     System.out.println(text_input.getText().toString());
                     categoryList.add(new Category(count_task, text_input.getText().toString(), false));
+                    PreConfig.writeListInPref(getApplicationContext(),categoryList);
                     text_input.setText("");
                     setCategoryRecycler(categoryList);
                     count_task++;
@@ -171,12 +173,12 @@ public class MainActivity extends AppCompatActivity  {
 //        categoryList.add(new Category(2, "gccccg"));
 //
     }
+
+
+
+
+
     void onKeyboardVisibilityChanged(boolean opened ) {
-
-
-
-
-
 
         System.out.println("keyboard " + opened);
     }
@@ -200,6 +202,61 @@ public class MainActivity extends AppCompatActivity  {
 
         return false;
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        View view = this.getCurrentFocus();;
+        if(view != null && !checkLabelOnNothing(text_input.getText().toString())) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(MainActivity.INPUT_METHOD_SERVICE);
+            imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0);
+        }
+        if(checkLabelOnNothing(text_input.getText().toString())){
+            InputMethodManager imm = (InputMethodManager) getSystemService(MainActivity.INPUT_METHOD_SERVICE);
+            imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0);
+        }
+    }
+
+
+    //    public  boolean saveArray()
+//    {
+//        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+//        SharedPreferences.Editor mEdit1 = sp.edit();
+//        /* sKey is an array */
+//        mEdit1.putInt("Status_size", categoryList.size());
+//
+//        for(int i=0;i<categoryList.size();i++)
+//        {
+//            mEdit1.remove("Status_" + i);
+//            mEdit1.putString("Status_" + i, categoryList.get(i).toString());
+//        }
+//
+//        return mEdit1.commit();
+//    }
+//    public  void loadArray(Context mContext)
+//    {
+//        SharedPreferences mSharedPreference1 =   PreferenceManager.getDefaultSharedPreferences(mContext);
+//        categoryList.clear();
+//        int size = mSharedPreference1.getInt("Status_size", 0);
+//
+//        for(int i=0; i <size; i++)
+//        {
+////            categoryList.add(new Category(count_task, text_input.getText().toString(), false));
+//
+//            categoryList.add(new Category(count_task,mSharedPreference1.getString("Status_" + i, "ale"),false));
+//            setCategoryRecycler(categoryList);
+//            count_task++;
+//
+//        }
+//
+//    }
+
+
+
+
+
+
+
 
 
 }
