@@ -54,8 +54,7 @@
         android:ems="10"
         android:hint="@string/remind"
         android:inputType="text"
-        android:visibility="invisible"
-        >
+        android:visibility="invisible">
 
     </EditText>
 
